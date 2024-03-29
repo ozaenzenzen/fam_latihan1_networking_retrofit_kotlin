@@ -1,15 +1,18 @@
 package com.example.restaurantreview.ui
 
 import ReviewAdapter
+import android.content.Context
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.example.restaurantreview.R
 import com.example.restaurantreview.data.response.CustomerReviewsItem
+import com.example.restaurantreview.data.response.PostReviewResponse
 import com.example.restaurantreview.data.response.Restaurant
 import com.example.restaurantreview.data.response.RestaurantResponse
 import com.example.restaurantreview.data.retrofit.ApiConfig
@@ -39,6 +42,36 @@ class MainActivity : AppCompatActivity() {
         binding.rvReview.addItemDecoration(itemDecoration)
 
         findRestaurant()
+
+        binding.btnSend.setOnClickListener { view ->
+            postReview(binding.edReview.text.toString())
+            val inm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            inm.hideSoftInputFromWindow(view.windowToken, 0)
+        }
+    }
+
+    private fun postReview(review: String) {
+        showLoading(true)
+        val client = ApiConfig.getApiService().postReview(RESTAURANT_ID, "Dicoding", review)
+        client.enqueue(object : Callback<PostReviewResponse> {
+            override fun onResponse(
+                call: Call<PostReviewResponse>,
+                response: Response<PostReviewResponse>
+            ) {
+                showLoading(false)
+                val responseBody = response.body()
+                if (response.isSuccessful && responseBody != null) {
+                    setReviewData(responseBody.customerReviews)
+                } else {
+                    Log.e(TAG, "${response.message()}")
+                }
+            }
+
+            override fun onFailure(call: Call<PostReviewResponse>, t: Throwable) {
+                showLoading(false)
+                Log.e(TAG, "${t.message}")
+            }
+        })
     }
 
     private fun findRestaurant() {
